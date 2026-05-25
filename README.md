@@ -1,8 +1,6 @@
-# Mask-RCNN-Vertebral
+# Mask-RCNN-Lumbar-Vertebral-Segmentation
 
-> Standard Mask R-CNN (ResNet-101-FPN) baseline for automated lumbar vertebral body instance segmentation in sagittal T2 MRI images. This repository is the **ablation baseline** for the BMask R-CNN paper — identical hyperparameters, same SPIDER dataset, same training schedule — with the **sole difference** being the absence of the boundary supervision head. Achieves AP50 = 98.07% and AP75 = 98.07% on the curated SPIDER dataset.
-
-> ⚠️ **Associated manuscript under review** — please do not redistribute or cite without permission from the authors.
+> Standard Mask R-CNN (ResNet-101-FPN) baseline for automated lumbar vertebral body instance segmentation in sagittal T2 MRI images. This repository is the **ablation baseline** for the BMask R-CNN paper — identical hyperparameters, same SPIDER dataset, same training schedule — with the **sole difference** being the absence of the boundary supervision head. Applied on the curated SPIDER dataset.
 
 ---
 
@@ -11,26 +9,12 @@
 This repository implements the **standard Mask R-CNN baseline** used as the ablation comparison in:
 
 > *Boundary-Aware Instance Segmentation of Lumbar Vertebrae in MRI for Automated Deformity Measurement*
-> Turrnum Shahzadi, Norio Tagawa, Shuhei Tarashima, Muhammad Usman Ali, Rizwan Akram, Zeeshan Talib
-> Tokyo Metropolitan University et al. *(Manuscript under review)*
 
-| | Mask R-CNN (This repo) | BMask R-CNN |
-|--|--|--|
-| **Repository** | `Mask-RCNN-Vertebral` | `BMask-RCNN-Vertebral` |
-| **Backbone** | ResNet-101 + FPN | ResNet-101 + FPN |
-| **Mask head** | 6-conv standard | 6-conv standard |
-| **Boundary head** | ❌ None | ✅ 4-conv, loss weight 1.8 |
-| **Config source** | detectron2 model zoo | BMask R-CNN YAML |
-| **AP50** | 98.07% | **98.41%** |
-| **AP75** | 98.07% | **98.41% (+0.34 pp)** |
-
-The +0.34 pp AP75 improvement from BMask R-CNN over this baseline confirms that explicit boundary supervision provides quantifiable improvement in contour precision — the metric most sensitive to boundary accuracy and the one most directly relevant to LLA/LSA angle estimation.
 
 ---
 
 ## Table of Contents
 
-- [Key Results](#key-results)
 - [Repository Structure](#repository-structure)
 - [Dependencies](#dependencies)
 - [Installation](#installation)
@@ -39,23 +23,8 @@ The +0.34 pp AP75 improvement from BMask R-CNN over this baseline confirms that 
 - [Configuration Parameters](#configuration-parameters)
 - [Architecture Difference](#architecture-difference)
 - [Outputs](#outputs)
-- [Known Limitations](#known-limitations)
 - [Related Repositories](#related-repositories)
 - [References](#references)
-- [License](#license)
-
----
-
-## Key Results
-
-| Metric | Value |
-|--------|-------|
-| Segmentation AP50 | 98.07% |
-| Segmentation AP75 | 98.07% |
-| AP75 vs BMask R-CNN | −0.34 pp |
-| Dataset | SPIDER (505 sagittal T2 MRI images, 6 classes: L1–S1) |
-| Backbone | ResNet-101 + FPN |
-| Boundary head | **None** |
 
 ---
 
@@ -72,20 +41,6 @@ mask-rcnn-vertebral/
 │   ├── train.py               # Main training entry point (importable + CLI)
 │   ├── metrics.py             # Loss and AP plots from metrics.json
 │   └── inference.py           # Predictor, COCO eval, mask saving, angles, ICC
-│
-├── configs/
-│   └── notes.md               # Config parameter notes and ablation rationale
-│
-├── data/
-│   └── README.md              # Dataset format instructions
-│
-├── docs/
-│   └── ablation_notes.md      # Detailed comparison with BMask R-CNN
-│
-├── outputs/
-│   └── README.md              # Output file descriptions
-│
-├── assets/                    # Sample result images
 │
 ├── requirements.txt
 ├── .gitignore
@@ -144,7 +99,7 @@ Same curated SPIDER dataset as the BMask R-CNN repository:
 
 - **Source:** SPIDER — Lumbar Spine Segmentation in MR Images (van der Graaf et al., 2023)
 - **Images:** 505 sagittal T2 MRI images
-- **Classes:** L1 (V1), L2 (V2), L3 (V3), L4 (V4), L5 (V5), S1
+- **Classes:** L1 , L2 , L3 , L4 , L5 , S1
 - **Curation:** S1 annotations added by skilled clinicians (originally missing from SPIDER)
 - **Format:** COCO instance segmentation JSON
 
@@ -173,16 +128,7 @@ evaluate_test_set(predictor, infer_cfg)
 from src.inference import save_predictions
 save_predictions(predictor, infer_cfg)
 
-# 4. Compute angles
-from src.inference import run_angle_measurements
-auto_LLA, auto_LSA, filenames = run_angle_measurements(predictor, infer_cfg)
 
-# 5. ICC analysis (supply surgeon lists from BMask R-CNN statistics module)
-from src.inference import run_icc_analysis
-run_icc_analysis(auto_LLA, auto_LSA, infer_cfg.OUTPUT_DIR,
-                 paired_s1_LLA=..., paired_s2_LLA=...,
-                 paired_s1_LSA=..., paired_s2_LSA=...)
-```
 
 ### Training only (CLI)
 
@@ -239,8 +185,7 @@ BMask R-CNN (companion repo):
                                                   boundary_loss × 1.8
 ```
 
-The boundary head receives the same ROI features and is trained on edge-derived ground truth (binary boundary maps from vertebral contours). The combined loss `mask_loss + 1.8 × boundary_loss` pushes the model to produce sharper endplate edges, improving AP75 by +0.34 pp.
-
+The boundary head receives the same ROI features and is trained on edge-derived ground truth (binary boundary maps from vertebral contours).
 ---
 
 ## Outputs
@@ -262,14 +207,6 @@ All outputs saved to `cfg.OUTPUT_DIR`:
 | `test_predictions/per_class_masks/` | Per-vertebra masks |
 | `maskrcnn_angle_measurements.json` | LLA + LSA per image |
 | `maskrcnn_ICC_results.json` | ICC(2,1) results |
-
----
-
-## Known Limitations
-
-- Paths are configured for Google Colab/Drive — update for local use
-- Does not include Bland-Altman plots — use the BMask R-CNN `statistics.py` module with this model's angle outputs for full comparison
-- No boundary supervision means AP75 is lower than BMask R-CNN, particularly for S1 (most oblique vertebra)
 
 ---
 
@@ -297,11 +234,3 @@ All outputs saved to `cfg.OUTPUT_DIR`:
 5. Kim, Y.-T. et al. (2023). *Automatic spine segmentation and parameter measurement*. Journal of Digital Imaging, 36(4), 1447–1459.
 
 ---
-
-## License
-
-MIT License. See `LICENSE` for details.
-
-The associated manuscript is under review — please do not redistribute or cite without permission:
-- Turrnum Shahzadi: turrnumshahzadi@gmail.com
-- Norio Tagawa: tagawa@tmu.ac.jp
